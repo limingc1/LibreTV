@@ -116,18 +116,6 @@ export async function onRequest(context) {
         return true;
     }
 
-    // 验证鉴权（主函数调用）
-    if (!validateAuth(request, env)) {
-        return new Response('Unauthorized', { 
-            status: 401,
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, HEAD, POST, OPTIONS',
-                'Access-Control-Allow-Headers': '*'
-            }
-        });
-    }
-
     // 输出调试日志 (需要设置 DEBUG: true 环境变量)
     function logDebug(message) {
         if (DEBUG_ENABLED) {
@@ -248,20 +236,32 @@ export async function onRequest(context) {
 
     // 获取远程内容及其类型
     async function fetchContentWithType(targetUrl) {
+        const targetOrigin = new URL(targetUrl).origin;
         const headers = new Headers({
             'User-Agent': getRandomUserAgent(),
-            'Accept': '*/*',
-            // 尝试传递一些原始请求的头信息
-            'Accept-Language': request.headers.get('Accept-Language') || 'zh-CN,zh;q=0.9,en;q=0.8',
-            // 尝试设置 Referer 为目标网站的域名，或者传递原始 Referer
-            'Referer': request.headers.get('Referer') || new URL(targetUrl).origin
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7',
+            'Referer': targetOrigin + '/',
+            'Origin': targetOrigin,
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-site',
         });
 
         try {
             // 直接请求目标 URL
             logDebug(`开始直接请求: ${targetUrl}`);
             // Cloudflare Functions 的 fetch 默认支持重定向
-            const response = await fetch(targetUrl, { headers, redirect: 'follow' });
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超时
+            const response = await fetch(targetUrl, {
+                headers,
+                redirect: 'follow',
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                  const errorBody = await response.text().catch(() => '');

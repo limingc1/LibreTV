@@ -28,17 +28,43 @@ async function searchByAPIAndKeyWord(apiId, query) {
             await window.ProxyAuth.addAuthToProxyUrl(PROXY_URL + encodeURIComponent(apiUrl)) :
             PROXY_URL + encodeURIComponent(apiUrl);
         
-        const response = await fetch(proxiedUrl, {
+        let response = await fetch(proxiedUrl, {
             headers: API_CONFIG.search.headers,
             signal: controller.signal
         });
-        
+
         clearTimeout(timeoutId);
-        
+
+        // 检查代理返回的内容类型是否为JSON
+        const contentType = response.headers.get('content-type') || '';
+
+        // 如果代理失败或返回的是HTML(被屏蔽)，尝试跳过代理直接请求
+        if (!response.ok || contentType.includes('text/html') || (!contentType.includes('json') && !response.ok)) {
+            const directUrl = apiBaseUrl + API_CONFIG.search.path + encodeURIComponent(query);
+            try {
+                const directController = new AbortController();
+                const directTimeoutId = setTimeout(() => directController.abort(), 10000);
+                const directResponse = await fetch(directUrl, {
+                    headers: API_CONFIG.search.headers,
+                    signal: directController.signal,
+                    mode: 'cors'
+                });
+                clearTimeout(directTimeoutId);
+                if (directResponse.ok && !directResponse.headers.get('content-type')?.includes('text/html')) {
+                    response = directResponse;
+                }
+            } catch (e) {
+                // 直接请求失败（可能CORS限制），继续用代理的结果
+                if (!response.ok) {
+                    return [];
+                }
+            }
+        }
+
         if (!response.ok) {
             return [];
         }
-        
+
         const data = await response.json();
         
         if (!data || !data.list || !Array.isArray(data.list) || data.list.length === 0) {
