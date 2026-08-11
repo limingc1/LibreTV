@@ -235,19 +235,13 @@ export async function onRequest(context) {
     }
 
     // 获取远程内容及其类型
+    // 请求头采用极简风格（对齐 GitHub Actions 实测 95%+ 可用率的 axios 请求）：
+    // 不发送 Origin/Referer/Sec-Fetch-* 等浏览器伪装头，避免被采集站 WAF 识别为异常请求
     async function fetchContentWithType(targetUrl) {
-        const targetOrigin = new URL(targetUrl).origin;
         const headers = new Headers({
             'User-Agent': getRandomUserAgent(),
             'Accept': 'application/json, text/plain, */*',
             'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7',
-            'Referer': targetOrigin + '/',
-            'Origin': targetOrigin,
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-site',
         });
 
         try {
