@@ -32,21 +32,6 @@ const API_SITES = {
         name: '爱奇艺',
         detail: 'https://iqiyizyapi.com'
     },
-    tyyszy: {
-        api: 'https://tyyszy.com/api.php/provide/vod',
-        name: '天涯资源',
-        detail: 'https://tyyszy.com'
-    },
-    wolong: {
-        api: 'https://wolongzyw.com/api.php/provide/vod',
-        name: '卧龙资源',
-        detail: 'https://wolongzyw.com'
-    },
-    ffzy: {
-        api: 'https://api.ffzyapi.com/api.php/provide/vod',
-        name: '非凡资源',
-        detail: 'https://cj.ffzyapi.com'
-    },
     jisu: {
         api: 'https://jszyapi.com/api.php/provide/vod',
         name: '极速资源',
@@ -76,11 +61,6 @@ const API_SITES = {
         api: 'https://cj.rycjapi.com/api.php/provide/vod',
         name: '如意资源',
         detail: 'https://www.ryzyw.com'
-    },
-    dyttzy: {
-        api: 'http://caiji.dyttzyapi.com/api.php/provide/vod',
-        name: '电影天堂',
-        detail: 'http://caiji.dyttzyapi.com'
     },
     maotai: {
         api: 'https://caiji.maotaizy.cc/api.php/provide/vod',
@@ -116,11 +96,6 @@ const API_SITES = {
         api: 'https://api.xinlangapi.com/xinlangapi.php/provide/vod',
         name: '新浪资源',
         detail: 'https://xinlangapi.com'
-    },
-    wangwang: {
-        api: 'https://api.wwzy.tv/api.php/provide/vod',
-        name: '旺旺资源',
-        detail: 'https://api.wwzy.tv'
     },
     subo: {
         api: 'https://subocaiji.com/api.php/provide/vod',
@@ -162,6 +137,45 @@ const API_SITES = {
         name: '艾旦影视',
         detail: 'https://lovedan.net'
     },
+    // ===== LunaTV 健康报告新增（有搜索结果的源） =====
+    youzhi: {
+        api: 'https://api.yzzy-api.com/inc/apijson.php',
+        name: '优质资源',
+        detail: 'https://1080zyk4.com'
+    },
+    huya: {
+        api: 'https://www.huyaapi.com/api.php/provide/vod',
+        name: '虎牙资源',
+        detail: 'https://www.huyaapi.com'
+    },
+    yinghua: {
+        api: 'https://m3u8.apiyhzy.com/api.php/provide/vod',
+        name: '樱花资源',
+        detail: 'https://yhzy.cc'
+    },
+    suoni: {
+        api: 'https://suoniapi.com/api.php/provide/vod',
+        name: '索尼资源',
+        detail: 'https://suonizy.net'
+    },
+    manhua: {
+        api: 'https://www.xxibaozyw.com/api.php/provide/vod',
+        name: '细胞资源',
+        adult: true,
+        detail: 'https://www.xxibaozyw.com'
+    },
+    xiangjiao: {
+        api: 'https://www.xiangjiaozyw.com/api.php/provide/vod',
+        name: '香蕉资源',
+        adult: true,
+        detail: 'https://www.xiangjiaozyw.com'
+    },
+    bcp2: {
+        api: 'https://www.kxgav.com/api/json.php',
+        name: '白嫖资源',
+        adult: true,
+        detail: 'https://www.kxgav.com'
+    },
 
     // ===== 黄色资源采集站 =====
     jkun: {
@@ -193,12 +207,6 @@ const API_SITES = {
         name: 'lsb资源',
         adult: true,
         detail: 'https://apilsbzy1.com'
-    },
-    bwzy: {
-        api: 'https://api.bwzyz.com/api.php/provide/vod',
-        name: '百万资源',
-        adult: true,
-        detail: 'https://api.bwzym3u8.com'
     },
     mada: {
         api: 'https://91md.me/api.php/provide/vod',
@@ -247,12 +255,6 @@ const API_SITES = {
         name: '奶香资源',
         adult: true,
         detail: 'https://Naixxzy.com'
-    },
-    senlin: {
-        api: 'https://beiyong.slapibf.com/api.php/provide/vod',
-        name: '森林资源',
-        adult: true,
-        detail: 'https://slapibf.com'
     },
     lajiao: {
         api: 'https://apilj.com/api.php/provide/vod',

@@ -38,8 +38,27 @@ async function searchByAPIAndKeyWord(apiId, query) {
         // 检查代理返回的内容类型是否为JSON
         const contentType = response.headers.get('content-type') || '';
 
+        // 有些采集站返回的JSON数据用的Content-Type是text/html而不是application/json。
+        // 代理返回200但Content-Type不是json时，先尝试将内容解析为JSON再决定是否降级。
+        if (response.ok && !contentType.includes('json')) {
+            const text = await response.text();
+            try {
+                const jsonData = JSON.parse(text);
+                // 解析成功：这是采集站误标了Content-Type的JSON数据，修正后直接使用
+                response = new Response(JSON.stringify(jsonData), {
+                    status: response.status,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            } catch (e) {
+                // 解析失败：确实是HTML/WAF页面，保留原response走降级
+            }
+        }
+
+        // 检查修正后的Content-Type
+        const finalContentType = response.headers.get('content-type') || '';
+
         // 如果代理失败或返回的是HTML(被屏蔽)，尝试跳过代理直接请求
-        if (!response.ok || contentType.includes('text/html') || (!contentType.includes('json') && !response.ok)) {
+        if (!response.ok || finalContentType.includes('text/html')) {
             const directUrl = apiBaseUrl + API_CONFIG.search.path + encodeURIComponent(query);
             try {
                 const directController = new AbortController();
