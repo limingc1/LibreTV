@@ -50,7 +50,12 @@ async function searchByAPIAndKeyWord(apiId, query) {
                     headers: { 'Content-Type': 'application/json' }
                 });
             } catch (e) {
-                // 解析失败：确实是HTML/WAF页面，保留原response走降级
+                // 解析失败：确实是HTML/WAF页面，重新构造response保持body可读
+                response = new Response(text, {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: response.headers
+                });
             }
         }
 

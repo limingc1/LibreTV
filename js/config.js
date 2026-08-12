@@ -148,16 +148,6 @@ const API_SITES = {
         name: '虎牙资源',
         detail: 'https://www.huyaapi.com'
     },
-    yinghua: {
-        api: 'https://m3u8.apiyhzy.com/api.php/provide/vod',
-        name: '樱花资源',
-        detail: 'https://yhzy.cc'
-    },
-    suoni: {
-        api: 'https://suoniapi.com/api.php/provide/vod',
-        name: '索尼资源',
-        detail: 'https://suonizy.net'
-    },
     manhua: {
         api: 'https://www.xxibaozyw.com/api.php/provide/vod',
         name: '细胞资源',
