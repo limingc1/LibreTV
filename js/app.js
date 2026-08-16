@@ -561,6 +561,15 @@ function resetSearchArea() {
     document.getElementById('results').innerHTML = '';
     document.getElementById('searchInput').value = '';
 
+    // 重置分页与源站筛选状态
+    currentSearchResults = [];
+    currentSourceFilter = 'all';
+    currentPage = 1;
+    const _sfb = document.getElementById('sourceFilterBar');
+    const _pb = document.getElementById('paginationBar');
+    if (_sfb) { _sfb.classList.add('hidden'); _sfb.innerHTML = ''; }
+    if (_pb) { _pb.classList.add('hidden'); _pb.innerHTML = ''; }
+
     // 恢复搜索区域的样式
     document.getElementById('searchArea').classList.add('flex-1');
     document.getElementById('searchArea').classList.remove('mb-8');
@@ -586,6 +595,11 @@ function resetSearchArea() {
     }
 }
 
+// 返回首页（首页按钮/Logo 点击）
+function resetToHome() {
+    resetSearchArea();
+}
+
 // 获取自定义API信息
 function getCustomApiInfo(customApiIndex) {
     const index = parseInt(customApiIndex);
@@ -593,6 +607,161 @@ function getCustomApiInfo(customApiIndex) {
         return null;
     }
     return customAPIs[index];
+}
+
+// 搜索结果分页与源站分组状态
+let currentSearchResults = [];
+let currentSourceFilter = 'all';
+let currentPage = 1;
+const PAGE_SIZE = 24;
+
+// 渲染单张搜索结果卡片
+function renderCard(item) {
+    const safeId = item.vod_id ? item.vod_id.toString().replace(/[^\w-]/g, '') : '';
+    const safeName = (item.vod_name || '').toString()
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    const sourceInfo = item.source_name ?
+        `<span class="bg-white/10 text-xs px-1.5 py-0.5 rounded-full">${item.source_name}</span>` : '';
+    const sourceCode = item.source_code || '';
+    const apiUrlAttr = item.api_url ?
+        `data-api-url="${item.api_url.replace(/"/g, '&quot;')}"` : '';
+    const hasCover = item.vod_pic && item.vod_pic.startsWith('http');
+
+    return `
+        <div class="card-hover rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02] h-full"
+             onclick="showDetails('${safeId}','${safeName}','${sourceCode}')" ${apiUrlAttr}>
+            <div class="flex h-full">
+                ${hasCover ? `
+                <div class="relative flex-shrink-0 search-card-img-container">
+                    <img src="${item.vod_pic}" alt="${safeName}"
+                         class="h-full w-full object-cover transition-transform hover:scale-110"
+                         onerror="this.onerror=null; this.src='image/nomedia.png'; this.classList.add('object-contain');"
+                         loading="lazy">
+                    <div class="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent"></div>
+                </div>` : ''}
+
+                <div class="p-2 flex flex-col flex-grow">
+                    <div class="flex-grow">
+                        <h3 class="font-semibold mb-2 break-words line-clamp-2 ${hasCover ? '' : 'text-center'}" title="${safeName}">${safeName}</h3>
+
+                        <div class="flex flex-wrap ${hasCover ? '' : 'justify-center'} gap-1 mb-2">
+                            ${(item.type_name || '').toString().replace(/</g, '&lt;') ?
+                                `<span class="text-xs py-0.5 px-1.5 rounded bg-blue-500/20 text-blue-300">
+                                    ${(item.type_name || '').toString().replace(/</g, '&lt;')}
+                                </span>` : ''}
+                            ${(item.vod_year || '') ?
+                                `<span class="text-xs py-0.5 px-1.5 rounded bg-purple-500/20 text-purple-300">
+                                    ${item.vod_year}
+                                </span>` : ''}
+                        </div>
+                        <p class="text-gray-400 line-clamp-2 overflow-hidden ${hasCover ? '' : 'text-center'} mb-2">
+                            ${(item.vod_remarks || '暂无介绍').toString().replace(/</g, '&lt;')}
+                        </p>
+                    </div>
+
+                    <div class="flex justify-between items-center mt-1 pt-1 border-t border-white/10">
+                        ${sourceInfo ? `<div>${sourceInfo}</div>` : '<div></div>'}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// 渲染源站筛选 chips
+function renderSourceFilterBar() {
+    const bar = document.getElementById('sourceFilterBar');
+    if (!bar) return;
+    const map = new Map();
+    const ordered = [];
+    currentSearchResults.forEach(item => {
+        const code = item.source_code || 'unknown';
+        if (!map.has(code)) {
+            const entry = { code, name: item.source_name || '未知源', count: 0 };
+            map.set(code, entry);
+            ordered.push(entry);
+        }
+        map.get(code).count++;
+    });
+    const total = currentSearchResults.length;
+    let html = `<button class="source-chip ${currentSourceFilter === 'all' ? 'active' : ''}" onclick="setSourceFilter('all')">全部 <span class="chip-count">${total}</span></button>`;
+    ordered.forEach(s => {
+        const active = currentSourceFilter === s.code ? 'active' : '';
+        html += `<button class="source-chip ${active}" onclick="setSourceFilter('${s.code}')">${s.name} <span class="chip-count">${s.count}</span></button>`;
+    });
+    bar.innerHTML = html;
+    bar.classList.toggle('hidden', ordered.length <= 1);
+}
+
+// 切换源站筛选
+function setSourceFilter(code) {
+    currentSourceFilter = code;
+    currentPage = 1;
+    renderSourceFilterBar();
+    renderResults();
+    const resultsArea = document.getElementById('resultsArea');
+    if (resultsArea) resultsArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// 渲染分页条
+function renderPagination(totalPages) {
+    const bar = document.getElementById('paginationBar');
+    if (!bar) return;
+    if (totalPages <= 1) {
+        bar.classList.add('hidden');
+        bar.innerHTML = '';
+        return;
+    }
+    const btn = (label, page, opts = {}) => {
+        const cls = opts.active ? 'active' : '';
+        const dis = opts.disabled ? 'disabled' : '';
+        return `<button class="page-btn ${cls}" ${dis} onclick="changePage(${page})">${label}</button>`;
+    };
+    let html = btn('‹', currentPage - 1, { disabled: currentPage === 1 });
+    const pages = new Set([1, totalPages, currentPage - 1, currentPage, currentPage + 1]);
+    const sorted = [...pages].filter(p => p >= 1 && p <= totalPages).sort((a, b) => a - b);
+    let prev = 0;
+    sorted.forEach(p => {
+        if (p - prev > 1) html += `<span class="page-ellipsis">…</span>`;
+        html += btn(p, p, { active: p === currentPage });
+        prev = p;
+    });
+    html += btn('›', currentPage + 1, { disabled: currentPage === totalPages });
+    bar.innerHTML = html;
+    bar.classList.remove('hidden');
+}
+
+// 翻页
+function changePage(page) {
+    currentPage = page;
+    renderResults();
+    const resultsArea = document.getElementById('resultsArea');
+    if (resultsArea) resultsArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// 渲染当前页结果（按当前源筛选 + 分页）
+function renderResults() {
+    const resultsDiv = document.getElementById('results');
+    const countEl = document.getElementById('searchResultsCount');
+
+    const filtered = currentSourceFilter === 'all'
+        ? currentSearchResults
+        : currentSearchResults.filter(item => (item.source_code || 'unknown') === currentSourceFilter);
+
+    if (countEl) countEl.textContent = filtered.length;
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    if (currentPage > totalPages) currentPage = totalPages;
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const pageItems = filtered.slice(start, start + PAGE_SIZE);
+
+    resultsDiv.innerHTML = pageItems.length > 0
+        ? pageItems.map(renderCard).join('')
+        : `<div class="col-span-full text-center py-16 text-gray-500">该源暂无结果</div>`;
+
+    renderPagination(totalPages);
 }
 
 // 搜索功能 - 修改为支持多选API和多页结果
@@ -673,6 +842,13 @@ async function search() {
 
         // 如果没有结果
         if (!allResults || allResults.length === 0) {
+            currentSearchResults = [];
+            currentSourceFilter = 'all';
+            currentPage = 1;
+            const _sfb = document.getElementById('sourceFilterBar');
+            const _pb = document.getElementById('paginationBar');
+            if (_sfb) { _sfb.classList.add('hidden'); _sfb.innerHTML = ''; }
+            if (_pb) { _pb.classList.add('hidden'); _pb.innerHTML = ''; }
             resultsDiv.innerHTML = `
                 <div class="col-span-full text-center py-16">
                     <svg class="mx-auto h-12 w-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -714,76 +890,12 @@ async function search() {
             });
         }
 
-        // 添加XSS保护，使用textContent和属性转义
-        const safeResults = allResults.map(item => {
-            const safeId = item.vod_id ? item.vod_id.toString().replace(/[^\w-]/g, '') : '';
-            const safeName = (item.vod_name || '').toString()
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
-            const sourceInfo = item.source_name ?
-                `<span class="bg-[#222] text-xs px-1.5 py-0.5 rounded-full">${item.source_name}</span>` : '';
-            const sourceCode = item.source_code || '';
-
-            // 添加API URL属性，用于详情获取
-            const apiUrlAttr = item.api_url ?
-                `data-api-url="${item.api_url.replace(/"/g, '&quot;')}"` : '';
-
-            // 修改为水平卡片布局，图片在左侧，文本在右侧，并优化样式
-            const hasCover = item.vod_pic && item.vod_pic.startsWith('http');
-
-            return `
-                <div class="card-hover bg-[#111] rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02] h-full shadow-sm hover:shadow-md" 
-                     onclick="showDetails('${safeId}','${safeName}','${sourceCode}')" ${apiUrlAttr}>
-                    <div class="flex h-full">
-                        ${hasCover ? `
-                        <div class="relative flex-shrink-0 search-card-img-container">
-                            <img src="${item.vod_pic}" alt="${safeName}" 
-                                 class="h-full w-full object-cover transition-transform hover:scale-110" 
-                                 onerror="this.onerror=null; this.src='image/nomedia.png'; this.classList.add('object-contain');"
-                                 loading="lazy">
-                            <div class="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent"></div>
-                        </div>` : ''}
-                        
-                        <div class="p-2 flex flex-col flex-grow">
-                            <div class="flex-grow">
-                                <h3 class="font-semibold mb-2 break-words line-clamp-2 ${hasCover ? '' : 'text-center'}" title="${safeName}">${safeName}</h3>
-                                
-                                <div class="flex flex-wrap ${hasCover ? '' : 'justify-center'} gap-1 mb-2">
-                                    ${(item.type_name || '').toString().replace(/</g, '&lt;') ?
-                    `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-blue-500 text-blue-300">
-                                          ${(item.type_name || '').toString().replace(/</g, '&lt;')}
-                                      </span>` : ''}
-                                    ${(item.vod_year || '') ?
-                    `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-purple-500 text-purple-300">
-                                          ${item.vod_year}
-                                      </span>` : ''}
-                                </div>
-                                <p class="text-gray-400 line-clamp-2 overflow-hidden ${hasCover ? '' : 'text-center'} mb-2">
-                                    ${(item.vod_remarks || '暂无介绍').toString().replace(/</g, '&lt;')}
-                                </p>
-                            </div>
-                            
-                            <div class="flex justify-between items-center mt-1 pt-1 border-t border-gray-800">
-                                ${sourceInfo ? `<div>${sourceInfo}</div>` : '<div></div>'}
-                                <!-- 接口名称过长会被挤变形
-                                <div>
-                                    <span class="text-gray-500 flex items-center hover:text-blue-400 transition-colors">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                        </svg>
-                                        播放
-                                    </span>
-                                </div>
-                                -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        resultsDiv.innerHTML = safeResults;
+        // 存储结果并重置分页/筛选，交给 renderResults 分页渲染（卡片模板见 renderCard）
+        currentSearchResults = allResults;
+        currentSourceFilter = 'all';
+        currentPage = 1;
+        renderSourceFilterBar();
+        renderResults();
     } catch (error) {
         console.error('搜索错误:', error);
         if (error.name === 'AbortError') {
