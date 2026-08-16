@@ -148,23 +148,11 @@ const API_SITES = {
         name: '虎牙资源',
         detail: 'https://www.huyaapi.com'
     },
-    manhua: {
-        api: 'https://www.xxibaozyw.com/api.php/provide/vod',
-        name: '细胞资源',
-        adult: true,
-        detail: 'https://www.xxibaozyw.com'
-    },
     xiangjiao: {
         api: 'https://www.xiangjiaozyw.com/api.php/provide/vod',
         name: '香蕉资源',
         adult: true,
         detail: 'https://www.xiangjiaozyw.com'
-    },
-    bcp2: {
-        api: 'https://www.kxgav.com/api/json.php',
-        name: '白嫖资源',
-        adult: true,
-        detail: 'https://www.kxgav.com'
     },
 
     // ===== 黄色资源采集站 =====
